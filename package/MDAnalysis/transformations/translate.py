@@ -117,9 +117,9 @@ def center_in_box(ag, center='geometry', point=None, wrap=False):
             raise ValueError('{} is not a valid point'.format(point))
     try:
         if center == 'geometry':
-            center_method = partial(ag.center_of_geometry, pbc=pbc_arg)
+            center_method = partial(ag.center_of_geometry, wrap=pbc_arg)
         elif center == 'mass':
-            center_method = partial(ag.center_of_mass, pbc=pbc_arg)
+            center_method = partial(ag.center_of_mass, wrap=pbc_arg)
         else:
             raise ValueError('{} is not a valid argument for center'.format(center))
     except AttributeError:

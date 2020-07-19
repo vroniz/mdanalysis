@@ -129,7 +129,7 @@ def rotateby(angle, direction, point=None, ag=None, weights=None, wrap=False):
                 errmsg = ("weights must be {'mass', None} or an iterable of "
                           "the same size as the atomgroup.")
                 raise TypeError(errmsg) from None
-        center_method = partial(atoms.center, weights, pbc=wrap)
+        center_method = partial(atoms.center, weights, wrap=wrap)
     else:
         raise ValueError('A point or an AtomGroup must be specified')
     

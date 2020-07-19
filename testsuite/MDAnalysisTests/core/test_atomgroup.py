@@ -524,17 +524,17 @@ class TestCenter(object):
             group = group.segments
 
         # get the expected results
-        center = group.center(weights=None, pbc=False, compound=compound, unwrap=True)
+        center = group.center(weights=None, wrap=False, compound=compound, unwrap=True)
 
         ref_center = u.center(compound=compound)
         assert_almost_equal(ref_center, center, decimal=4)
 
-    def test_center_unwrap_pbc_true_group(self):
+    def test_center_unwrap_wrap_true_group(self):
         u = UnWrapUniverse(is_triclinic=False)
         # select group appropriate for compound:
         group = u.atoms[39:47]  # molecule 12
         with pytest.raises(ValueError):
-            group.center(weights=None, compound="group", unwrap=True, pbc=True)
+            group.center(weights=None, compound="group", unwrap=True, wrap=True)
 
 
 class TestSplit(object):
@@ -1143,18 +1143,18 @@ class TestPBCFlag(object):
         assert_almost_equal(ag.bsphere()[1], ref_noPBC['BSph'][1], self.prec)
         assert_almost_equal(ag.principal_axes(), ref_noPBC['PAxes'], self.prec)
 
-    def test_pbcflag(self, ag, ref_PBC):
-        # Test using pbc keyword
-        assert_almost_equal(ag.center_of_geometry(pbc=True), ref_PBC['COG'], self.prec)
-        assert_almost_equal(ag.center_of_mass(pbc=True), ref_PBC['COM'], self.prec)
-        assert_almost_equal(ag.radius_of_gyration(pbc=True), ref_PBC['ROG'], self.prec)
-        assert_almost_equal(ag.shape_parameter(pbc=True), ref_PBC['Shape'], self.prec)
-        assert_almost_equal(ag.asphericity(pbc=True), ref_PBC['Asph'], self.prec)
-        assert_almost_equal(ag.moment_of_inertia(pbc=True), ref_PBC['MOI'], self.prec)
-        assert_almost_equal(ag.bbox(pbc=True), ref_PBC['BBox'], self.prec)
-        assert_almost_equal(ag.bsphere(pbc=True)[0], ref_PBC['BSph'][0], self.prec)
-        assert_almost_equal(ag.bsphere(pbc=True)[1], ref_PBC['BSph'][1], self.prec)
-        assert_almost_equal(ag.principal_axes(pbc=True), ref_PBC['PAxes'], self.prec)
+    def test_wrap_kwarg(self, ag, ref_PBC):
+        # Test using wrap keyword
+        assert_almost_equal(ag.center_of_geometry(wrap=True), ref_PBC['COG'], self.prec)
+        assert_almost_equal(ag.center_of_mass(wrap=True), ref_PBC['COM'], self.prec)
+        assert_almost_equal(ag.radius_of_gyration(wrap=True), ref_PBC['ROG'], self.prec)
+        assert_almost_equal(ag.shape_parameter(wrap=True), ref_PBC['Shape'], self.prec)
+        assert_almost_equal(ag.asphericity(wrap=True), ref_PBC['Asph'], self.prec)
+        assert_almost_equal(ag.moment_of_inertia(wrap=True), ref_PBC['MOI'], self.prec)
+        assert_almost_equal(ag.bbox(wrap=True), ref_PBC['BBox'], self.prec)
+        assert_almost_equal(ag.bsphere(wrap=True)[0], ref_PBC['BSph'][0], self.prec)
+        assert_almost_equal(ag.bsphere(wrap=True)[1], ref_PBC['BSph'][1], self.prec)
+        assert_almost_equal(ag.principal_axes(wrap=True), ref_PBC['PAxes'], self.prec)
 
 
 class TestAtomGroup(object):
@@ -1269,14 +1269,14 @@ class TestAtomGroup(object):
                                                 ('segids', 'segments')))
     def test_center_of_geometry_compounds(self, ag, name, compound):
         ref = [a.center_of_geometry() for a in ag.groupby(name).values()]
-        cog = ag.center_of_geometry(pbc=False, compound=compound)
+        cog = ag.center_of_geometry(wrap=False, compound=compound)
         assert_almost_equal(cog, ref, decimal=5)
 
     @pytest.mark.parametrize('name, compound', (('resids', 'residues'),
                                                 ('segids', 'segments')))
     def test_center_of_mass_compounds(self, ag, name, compound):
         ref = [a.center_of_mass() for a in ag.groupby(name).values()]
-        com = ag.center_of_mass(pbc=False, compound=compound)
+        com = ag.center_of_mass(wrap=False, compound=compound)
         assert_almost_equal(com, ref, decimal=5)
 
     @pytest.mark.parametrize('name, compound', (('resids', 'residues'),
@@ -1286,7 +1286,7 @@ class TestAtomGroup(object):
         ref = [a.center_of_geometry() for a in ag.groupby(name).values()]
         ref = distances.apply_PBC(np.asarray(ref, dtype=np.float32),
                                   ag.dimensions)
-        cog = ag.center_of_geometry(pbc=True, compound=compound)
+        cog = ag.center_of_geometry(wrap=True, compound=compound)
         assert_almost_equal(cog, ref, decimal=5)
 
     @pytest.mark.parametrize('name, compound', (('resids', 'residues'),
@@ -1296,7 +1296,7 @@ class TestAtomGroup(object):
         ref = [a.center_of_mass() for a in ag.groupby(name).values()]
         ref = distances.apply_PBC(np.asarray(ref, dtype=np.float32),
                                   ag.dimensions)
-        com = ag.center_of_mass(pbc=True, compound=compound)
+        com = ag.center_of_mass(wrap=True, compound=compound)
         assert_almost_equal(com, ref, decimal=5)
 
     @pytest.mark.parametrize('name, compound', (('molnums', 'molecules'),
@@ -1304,7 +1304,7 @@ class TestAtomGroup(object):
     def test_center_of_geometry_compounds_special(self, ag_molfrg,
                                                   name, compound):
         ref = [a.center_of_geometry() for a in ag_molfrg.groupby(name).values()]
-        cog = ag_molfrg.center_of_geometry(pbc=False, compound=compound)
+        cog = ag_molfrg.center_of_geometry(wrap=False, compound=compound)
         assert_almost_equal(cog, ref, decimal=5)
 
     @pytest.mark.parametrize('name, compound', (('molnums', 'molecules'),
@@ -1312,7 +1312,7 @@ class TestAtomGroup(object):
     def test_center_of_mass_compounds_special(self, ag_molfrg,
                                               name, compound):
         ref = [a.center_of_mass() for a in ag_molfrg.groupby(name).values()]
-        com = ag_molfrg.center_of_mass(pbc=False, compound=compound)
+        com = ag_molfrg.center_of_mass(wrap=False, compound=compound)
         assert_almost_equal(com, ref, decimal=5)
 
     @pytest.mark.parametrize('name, compound', (('molnums', 'molecules'),
@@ -1323,7 +1323,7 @@ class TestAtomGroup(object):
         ref = [a.center_of_geometry() for a in ag_molfrg.groupby(name).values()]
         ref = distances.apply_PBC(np.asarray(ref, dtype=np.float32),
                                   ag_molfrg.dimensions)
-        cog = ag_molfrg.center_of_geometry(pbc=True, compound=compound)
+        cog = ag_molfrg.center_of_geometry(wrap=True, compound=compound)
         assert_almost_equal(cog, ref, decimal=5)
 
     @pytest.mark.parametrize('name, compound', (('molnums', 'molecules'),
@@ -1334,7 +1334,7 @@ class TestAtomGroup(object):
         ref = [a.center_of_mass() for a in ag_molfrg.groupby(name).values()]
         ref = distances.apply_PBC(np.asarray(ref, dtype=np.float32),
                                   ag_molfrg.dimensions)
-        com = ag_molfrg.center_of_mass(pbc=True, compound=compound)
+        com = ag_molfrg.center_of_mass(wrap=True, compound=compound)
         assert_almost_equal(com, ref, decimal=5)
 
     def test_center_wrong_compound(self, ag):
@@ -1359,7 +1359,7 @@ class TestAtomGroup(object):
         if compound != 'group':
             ref = ref.reshape((1, 3))
         ag_s = mda.AtomGroup([at])
-        assert_equal(ref, ag_s.center(weights, pbc=False, compound=compound))
+        assert_equal(ref, ag_s.center(weights, wrap=False, compound=compound))
 
     @pytest.mark.parametrize('weights', (None, np.array([0.0]),
                                          np.array([2.0])))
@@ -1375,24 +1375,24 @@ class TestAtomGroup(object):
         if compound != 'group':
             ref = ref.reshape((1, 3))
         ag_s = mda.AtomGroup([at])
-        assert_equal(ref, ag_s.center(weights, pbc=True, compound=compound))
+        assert_equal(ref, ag_s.center(weights, wrap=True, compound=compound))
 
-    @pytest.mark.parametrize('pbc', (False, True))
+    @pytest.mark.parametrize('wrap', (False, True))
     @pytest.mark.parametrize('weights', (None, np.array([])))
     @pytest.mark.parametrize('compound', ('group', 'residues', 'segments',
                                           'molecules', 'fragments'))
-    def test_center_compounds_empty(self, ag_molfrg, pbc, weights, compound):
+    def test_center_compounds_empty(self, ag_molfrg, wrap, weights, compound):
         ref = np.empty((0, 3), dtype=np.float64)
         ag_e = mda.AtomGroup([], ag_molfrg.universe)
-        assert_equal(ref, ag_e.center(weights, pbc=pbc, compound=compound))
+        assert_equal(ref, ag_e.center(weights, wrap=wrap, compound=compound))
 
-    @pytest.mark.parametrize('pbc', (False, True))
+    @pytest.mark.parametrize('wrap', (False, True))
     @pytest.mark.parametrize('name, compound', (('', 'group'),
                                                 ('resids', 'residues'),
                                                 ('segids', 'segments'),
                                                 ('molnums', 'molecules'),
                                                 ('fragindices', 'fragments')))
-    def test_center_compounds_zero_weights(self, ag_molfrg, pbc, name,
+    def test_center_compounds_zero_weights(self, ag_molfrg, wrap, name,
                                            compound):
         if compound == 'group':
             ref = np.full((3,), np.nan)
@@ -1400,7 +1400,7 @@ class TestAtomGroup(object):
             n_compounds = len(ag_molfrg.groupby(name))
             ref = np.full((n_compounds, 3), np.nan, dtype=np.float64)
         weights = np.zeros(len(ag_molfrg))
-        assert_equal(ref, ag_molfrg.center(weights, pbc=pbc, compound=compound))
+        assert_equal(ref, ag_molfrg.center(weights, wrap=wrap, compound=compound))
 
     def test_coordinates(self, ag):
         assert_almost_equal(
