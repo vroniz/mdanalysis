@@ -63,6 +63,8 @@ Changes
   * Sets the minimal RDKit version for CI to 2020.03.1 (Issue #2827, PR #2831)
 
 Deprecations
+  * Deprecated the 'pbc' kwarg for various Group methods, the 'wrap' kwarg
+    should be used instead. (Issue #1760)
 
 
 06/09/20 richardjgowers, kain88-de, lilyminium, p-j-smith, bdice, joaomcteixeira,
