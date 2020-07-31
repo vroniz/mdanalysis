@@ -435,3 +435,90 @@ class DCDWriter(base.WriterBase):
 
     def __del__(self):
         self.close()
+
+
+class DCDVelocityReader(base.ReaderBase):
+    """Reader for velocities in DCD format (.VEL).
+
+    DCD is used by NAMD, CHARMM and LAMMPS as the default trajectory format.
+    The DCD file format is not well defined. In particular, NAMD and CHARMM use
+    it differently. Currently, MDAnalysis tries to guess the correct **format
+    for the unitcell representation** but it can be wrong. **Check the unitcell
+    dimensions**, especially for triclinic unitcells (see `Issue 187`_). DCD
+    trajectories produced by CHARMM and NAMD( >2.5) record time in AKMA units.
+    If other units have been recorded (e.g., ps) then employ the configurable
+    :class:MDAnalysis.coordinates.LAMMPS.DCDReader and set the time unit as a
+    optional argument. You can find a list of units used in the DCD formats on
+    the MDAnalysis `wiki`_.
+
+
+    MDAnalysis always uses ``(*A*, *B*, *C*, *alpha*, *beta*, *gamma*)`` to
+    represent the unit cell. Lengths *A*, *B*, *C* are in the MDAnalysis length
+    unit (Å), and angles are in degrees.
+
+    The ordering of the angles in the unitcell is the same as in recent
+    versions of VMD's DCDplugin_ (2013), namely the `X-PLOR DCD format`_: The
+    original unitcell is read as ``[A, gamma, B, beta, alpha, C]`` from the DCD
+    file. If any of these values are < 0 or if any of the angles are > 180
+    degrees then it is assumed it is a new-style CHARMM unitcell (at least
+    since c36b2) in which box vectors were recorded.
+
+    .. warning::
+        The DCD format is not well defined. Check your unit cell
+        dimensions carefully, especially when using triclinic boxes.
+        Different software packages implement different conventions and
+        MDAnalysis is currently implementing the newer NAMD/VMD convention
+        and tries to guess the new CHARMM one. Old CHARMM trajectories might
+        give wrong unitcell values. For more details see `Issue 187`_.
+
+    .. _`X-PLOR DCD format`: http://www.ks.uiuc.edu/Research/vmd/plugins/molfile/dcdplugin.html
+    .. _Issue 187: https://github.com/MDAnalysis/mdanalysis/issues/187
+    .. _DCDplugin: http://www.ks.uiuc.edu/Research/vmd/plugins/doxygen/dcdplugin_8c-source.html#l00947
+    .. _wiki: https://github.com/MDAnalysis/mdanalysis/wiki/FileFormats#dcd
+    """
+    format = 'VDCD'
+    flavor = 'CHARMM'
+    units = {'time': 'AKMA', 'velocity': 'Angstrom/AKMA'}
+
+    def __init__(self, filename, convert_units=True, dt=None, **kwargs):
+        """
+        Parameters
+        ----------
+        filename : str
+            trajectory filename
+        convert_units : bool (optional)
+            convert units to MDAnalysis units
+        dt : float (optional)
+            overwrite time delta stored in DCD
+        **kwargs : dict
+            General reader arguments.
+
+
+        .. versionchanged:: 0.17.0
+           Changed to use libdcd.pyx library and removed the correl function
+        """
+        super(DCDVelocityReader, self).__init__(
+            filename, convert_units=convert_units, **kwargs)
+        self._file = DCDFile(self.filename)
+        self.n_atoms = self._file.header['natoms']
+
+        delta = mdaunits.convert(self._file.header['delta'],
+                                 self.units['time'], 'ps')
+        if dt is None:
+            dt = delta * self._file.header['nsavc']
+        self.skip_timestep = self._file.header['nsavc']
+
+        self._ts_kwargs['dt'] = dt
+        self.ts = self._Timestep(self.n_atoms, **self._ts_kwargs)
+        frame = self._file.read()
+        # reset trajectory
+        if self._file.n_frames > 1:
+            self._file.seek(1)
+        else:
+            self._file.seek(0)
+        self._frame = 0
+        self.ts = self._frame_to_ts(frame, self.ts)
+        # these should only be initialized once
+        self.ts.dt = dt
+        if self.convert_units:
+            self.convert_pos_from_native(self.ts.dimensions[:3])
